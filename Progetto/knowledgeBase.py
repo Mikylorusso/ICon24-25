@@ -3,9 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 from sklearn.preprocessing import MinMaxScaler, KBinsDiscretizer
-from apprendimento import trainWaterModelKFold, oversampling, regola_gomito_e_cluster, visualizeAspectRatioChart
+from apprendimento import trainWaterModelKFold, oversampling, regola_gomito_e_cluster
 from prolog import carica_risorse_idriche
-from csp import crea_csp_gestione_crisi_acqua, plot_water_usage, DF_branch_and_bound_opt
+from csp import crea_csp_gestione_acqua, plot_consumo_acqua, DF_branch_and_bound_opt
 from pyswip import Prolog
 from ragionamentoprob import bayesian_network, carica_rete_bayesiana, predizione
 
@@ -27,7 +27,7 @@ def main():
 
     nazioni = []
     if "Nazione" in dataset_idrico.columns:
-        # Prendi in considerazione solo i valori unici per evitare duplicati
+        # Prende in considerazione solo i valori unici per evitare duplicati
         nazioni = dataset_idrico["Nazione"].dropna().unique().tolist()
         print("Nazioni estratte:", nazioni)
 
@@ -47,12 +47,10 @@ def main():
         dataset_supervised[col] = pd.to_numeric(dataset_supervised[col], errors='raise').astype(int)
     dataset_supervised[feature_cols] = scaler.fit_transform(dataset_supervised[feature_cols])
     
-    
 
     # Integrazione Prolog per la Generazione di Fatti
 
-    # Utilizziamo un modulo dedicato per creare fatti a partire dal dataset,
-    # ad esempio per generare fatti Prolog
+    # Utilizziamo un modulo dedicato per creare fatti a partire dal dataset, per generare fatti Prolog
     print("Creazione dei fatti Prolog per la gestione idrica...")
     prolog_instance = carica_risorse_idriche(file_csv, "risorse_idriche.pl")
 
@@ -69,24 +67,24 @@ def main():
     # Apprendimento Supervisionato
     
     
-    # Addestramento e validazione del modello supervisionato (ad es. per la predizione della carenza idrica).
+    # Addestramento e validazione del modello supervisionato (per la predizione della carenza idrica).
     # Si utilizza la tecnica del KFold cross validation per garantire una valutazione robusta.
     print("Addestramento del modello supervisionato per la previsione della carenza idrica...")
 
 
     trained_models, evaluate_results = trainWaterModelKFold(dataset_supervised, target_column="Stato_idrico", resample=False)
     trained_models, evaluate_results = trainWaterModelKFold(dataset_supervised, target_column="Stato_idrico", resample=True)
+
+
     
-
-
     # Problema di Ricerca e CSP
     
     # Risoluzione del problema di allocazione delle risorse idriche.
-    # Questo modulo implementa tecniche di ricerca per risolvere un CSP che rispetta i vincoli
+    # Questo parte implementa tecniche di ricerca per risolvere un CSP che rispetta i vincoli
 
     del dataset_supervised['Cluster']
     print("Risoluzione del problema di crisi idrica mediante tecniche CSP...")
-    crisi_idrica = crea_csp_gestione_crisi_acqua(nazioni)
+    crisi_idrica = crea_csp_gestione_acqua(nazioni)
 
     bound_values = [40, 50, 60, 70, 80, 90, 100]
     num_expanded_values = []
@@ -134,11 +132,11 @@ def main():
         print("Soluzione CSP trovato: ")
         for var, val in soluzione.items():
             print(f"{var.name}: {val}")
-        plot_water_usage(soluzione)
+        plot_consumo_acqua(soluzione)
     else:
         print("Nessuna soluzione trovata per il CSP")
 
-    
+
     # Ragionamento Probabilistico con Rete Bayesiana
 
     # Per lavorare con la rete bayesiana, discretizziamo le feature continue.
@@ -162,3 +160,7 @@ def main():
 
     print("Evento idrico generato per predizione:", example_event)
     predizione(water_bn, example_event, "Stato_idrico")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,7 +1,7 @@
 from pyswip import Prolog
 import csv
 
-def validate_csv_row(row):
+def validazione_righe_csv(row):
   """
   Valida una riga CSV.
      Args:
@@ -29,18 +29,18 @@ def carica_risorse_idriche(file_csv, file_pl):
    """
    prolog = Prolog()
 
-   #try:
-   prolog.consult(file_pl)
-   #except Exception as e:
-     #print(f"Errore durante la consultazione del file Prolog: {e}")
+   try:
+     prolog.consult(file_pl)
+   except Exception as e:
+     print(f"Errore durante la consultazione del file Prolog: {e}")
 
    with open(file_csv, mode='r') as file:
      reader = csv.reader(file, delimiter = ';')
      next(reader)  # Salta l'intestazione
      for row in reader:
-        valid_row = validate_csv_row(row)
-        if valid_row:
-           nazione, acqua_annuale, acqua_pro_capite, popolazione = valid_row
+        righe_valide = validazione_righe_csv(row)
+        if righe_valide:
+           nazione, acqua_annuale, acqua_pro_capite, popolazione = righe_valide
            prolog.assertz(f"acqua_annuale('{nazione}', {acqua_annuale})")
            prolog.assertz(f"acqua_pro_capite('{nazione}', {acqua_pro_capite})")
            prolog.assertz(f"popolazione('{nazione}', {popolazione})")

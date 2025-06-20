@@ -9,7 +9,7 @@ carica_risorse:-
             assertz(acqua_annuale(Nazione, AcquaAnnuale)),
             assertz(acqua_pro_capite(Nazione, AcquaProCapite)),
             assertz(popolazione(Nazione, Popolazione))
-        ;   write('Dati non validi per: '), write(Nazione), nl
+         ;  write('Dati non validi per: '), write(Nazione), nl
         )
     ).
 

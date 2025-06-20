@@ -49,6 +49,7 @@ def bayesian_network(dataset):
         print(f"Modello bayesiano salvato in '{modello_bayesiano.pkl}'")
     except Exception as e:
         print("Errore durante il salvataggio del modello:", e)
+
     visualizza_grafo_bayesian_network(model)
 
     return model
@@ -59,44 +60,31 @@ def carica_rete_bayesiana():
     visualizza_grafo_bayesian_network(model)
     return model
 
-def predizione(model, evidences, target_column):
+def predizione(model, evidenze, target_column):
 
-    evidences = evidences.copy()
-    if target_column in evidences:
-        del evidences[target_column]
+    evidenze = evidenze.copy()
+    if target_column in evidenze:
+        del evidenze[target_column]
      # Inferenza con Variable Elimination
     inference = VariableElimination(model)
     
-    # Inferenza complessa: es. probabilità congiunta di Stato_Idrico dato Acqua Annuale e Popolazione
-    joint_query = inference.query(variables=[target_column], evidence=evidences)
+    # Inferenza complessa: probabilità congiunta di Stato_Idrico dato Acqua Annuale e Popolazione
+    joint_query = inference.query(variables=[target_column], evidence=evidenze)
     print("Risultati Inferenza Congiunta:")
     print(joint_query)
 
-"""def predizione1(model, dataset, target_column):
-    inference = VariableElimination(model)
-    risultati = []
-
-    for index, row in dataset.iterrows():
-        evidences = row.to_dict()
-        evidences.pop(target_column, None)
-        query_result = inference.query(variables=[target_column], evidence=evidences)
-        risultati.append(query_result)
-        print(f"Osservazione {index} - predizione per {target_column}: \n", query_result)
-
-    return risultati"""
 
 def visualizza_grafo_bayesian_network(model):
     """
     Visualizza il grafo di una rete bayesiana.
 
     Parametri:
-      model: Oggetto che rappresenta la rete bayesiana (ad esempio un'istanza di pgmpy.models.BayesianModel).
-             Si assume che model abbia i metodi nodes() ed edges() per ottenere nodi e archi.
+      model: Oggetto che rappresenta la rete bayesiana.
     """
     # Crea un grafo diretto 
     Grafo = nx.MultiDiGraph()
     
-    # Aggiungi nodi e archi dal modello della rete bayesiana
+    # Aggiunge nodi e archi dal modello della rete bayesiana
     Grafo.add_nodes_from(model.nodes())
     Grafo.add_edges_from(model.edges())
     

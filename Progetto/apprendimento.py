@@ -17,7 +17,7 @@ from imblearn.over_sampling import SMOTE
 def trainWaterModelKFold(df, target_column = "Stato_idrico", resample=False):
     
     # Selezione delle feature e del target
-    # Utilizziamo le feature 'Acqua Annuale' e 'Popolazione'
+    # Utilizzo delle feature 'Acqua Annuale' e 'Popolazione'
     X = df[['AcquaAnnuale', 'Popolazione']]
     y = df[target_column]
 
@@ -73,7 +73,7 @@ def trainWaterModelKFold(df, target_column = "Stato_idrico", resample=False):
     trained_models = {}
     evaluation_results = {}
     
-    # Per ogni modello, eseguiremo Grid Search, valuteremo in cross validation e calcoleremo le metriche
+    # Per ogni modello, eseguiamo Grid Search, valutiamo in cross validation e calcoliamo le metriche
     for name, config in models.items():
         print(f"\n----- Valutazione per il modello: {name} -----")
         model = config["model"]
@@ -81,23 +81,15 @@ def trainWaterModelKFold(df, target_column = "Stato_idrico", resample=False):
 
         # Fase di Grid Search per la selezione dei migliori iperparametri
         print("Esecuzione della Grid Search per ottimizzazione degli iperparametri...")
-        print("Prime 5 righe del DataFrame:")
-        print(df.head())
-        if "Stato_idrico" in df.columns:
-            print("\nDistribuzione delle classi in 'Stato_idrico':")
-            print(df["Stato_idrico"].value_counts())
-        else:
-            print("\nAttenzione: la colonna 'Stato_idrico' non è presente nel DataFrame!")
         grid_search = GridSearchCV(estimator=model, param_grid = param_grid, scoring = "accuracy", cv=skf, n_jobs=-1)
         grid_search.fit(X_train, y_train)
-        print(df["Stato_idrico"].value_counts())
         print(f"Migliori iperparametri trovati per {name}: {grid_search.best_params_}")
         best_model = grid_search.best_estimator_
 
         # Valutazione tramite validazione incrociata
         cv_scores = cross_val_score(best_model, X_train, y_train, cv=skf, scoring='accuracy')
-        print(f"CV Accuracy scores: {cv_scores}")
-        print(f"Media Accuracy: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
+        #print(f"CV Accuracy scores: {cv_scores}")
+        #print(f"Media Accuracy: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
        
         best_model.fit(X_train, y_train)
         y_pred = best_model.predict(X_test)
@@ -107,7 +99,7 @@ def trainWaterModelKFold(df, target_column = "Stato_idrico", resample=False):
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred)
-        cm = confusion_matrix(y_test, y_pred)
+        cm = confusion_matrix(y_test, y_pred, normalize='true')
 
         print("\nValutazione sul test set:")
         print(f"Accuracy:  {accuracy:.3f}")
@@ -120,16 +112,16 @@ def trainWaterModelKFold(df, target_column = "Stato_idrico", resample=False):
         print("\nClassification Report:")
         print(classification_report(y_test, y_pred))
 
-        # Salvare il modello addestrato su file (usando pickle)
+        # Salvataggio del modello addestrato su file
         model_filename = f"{name}_model.pkl"
-        with open(model_filename, "wb") as f:
-            pickle.dump(best_model, f)
+        with open(model_filename, "wb") as file:
+            pickle.dump(best_model, file)
         print(f"Modello {name} addestrato e salvato in: {model_filename}")
 
         # Salvataggio delle predizioni ottenute per ogni modello
         output_df = X_test.copy()
-        output_df['True_Label'] = y_test.values
-        output_df['Predicted'] = y_pred
+        output_df['Reale'] = y_test.values
+        output_df['Predetto'] = y_pred
         prediction_filename = f"predictions_{name}.csv"
         output_df.to_csv(prediction_filename, index=False)
         print(f"Predizioni per {name} salvate in: {prediction_filename}")
@@ -196,20 +188,20 @@ def regola_gomito_e_cluster(dataset):
     fig, ax = plt.subplots(figsize=(8, 6))
 
     y_lower = 10  # Iniziamo dallo spazio 10 pixel più in basso per raggruppare i plot
-    for i in range(k1.elbow):
-        # Estrai i valori per il cluster i-esimo e ordina
-        ith_cluster_silhouette_values = sample_silhouette_values[clusters == i]
-        ith_cluster_silhouette_values.sort()
+    for cluster in range(k1.elbow):
+        # Estraiamo i valori per il cluster i-esimo e dopo ordinati
+        cluster_silhouette_values = sample_silhouette_values[clusters == cluster]
+        cluster_silhouette_values.sort()
 
-        size_cluster_i = ith_cluster_silhouette_values.shape[0]
-        y_upper = y_lower + size_cluster_i
+        cluster_size = cluster_silhouette_values.shape[0]
+        y_upper = y_lower + cluster_size
 
-        color = cm.nipy_spectral(float(i) / k1.elbow)
-        ax.fill_betweenx(np.arange(y_lower, y_upper),0, ith_cluster_silhouette_values,facecolor=color, edgecolor=color, alpha=0.7)
+        color = cm.nipy_spectral(float(cluster) / k1.elbow)
+        ax.fill_betweenx(np.arange(y_lower, y_upper),0, cluster_silhouette_values,facecolor=color, edgecolor=color, alpha=0.7)
 
         # Etichettiamo il cluster
-        ax.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
-        y_lower = y_upper + 10  # Aggiungi spazio vuoto tra i plot dei cluster
+        ax.text(-0.05, y_lower + 0.5 * cluster_size, str(cluster))
+        y_lower = y_upper + 10  # Aggiungiamo spazio vuoto tra i plot dei cluster
 
 
     ax.set_title("Silhouette plot dei cluster")

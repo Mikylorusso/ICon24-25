@@ -15,53 +15,6 @@ class VincoloSoftGestioneAcqua(Constraint):
         """Sovrascriviamo la funzione value per tenere conto delle penalità in caso di crisi idrica"""
         return self.holds(assignment)   #Restituisce il valore della penalità soft per l'assegnazione corrente
 
-# Funzione per calcolare la penalità in caso di risorse insufficienti
-def penalty_if_resources_insufficient(uso_acqua, risorse_disponibili, coeff_superamento=20):
-    """Penalità se l'uso dell'acqua supera le risorse disponibili per una nazione"""
-    if uso_acqua > risorse_disponibili:
-        return (uso_acqua - risorse_disponibili) * coeff_superamento  # Più penalità per il superamento delle risorse
-    return 0
-
-def penalty_if_below_min_usage(uso_acqua,MIN_USAGE = 5):
-    """Penalità se l'uso dell'acqua è inferiore al minimo desiderato"""
-    if uso_acqua < MIN_USAGE:
-        return (MIN_USAGE - uso_acqua) * 5
-    return 0
-
-
-def crea_csp_gestione_crisi_acqua(Nazioni):
-    usage_vars = {nazione: Variable(f'usage_{nazione}', {i for i in range(1, 11)}) for nazione in Nazioni}
-    resource_vars = {nazione: Variable(f'resources_{nazione}', {i for i in range(1, 11)}) for nazione in Nazioni}
-
-    # Creazione dei vincoli soft per ogni nazione
-    vincoli_uso_acqua = []
-    for nazione in Nazioni:
-        uso_var = usage_vars[nazione]
-        risorsa_var = resource_vars[nazione]
-        
-        # Vincolo per l'uso dell'acqua che supera le risorse disponibili
-        vincolo_supera_risorse = VincoloSoftGestioneAcqua(
-            [uso_var, risorsa_var],
-            penalty_if_resources_insufficient,
-            f"Uso acqua supera le risorse disponibili per {nazione}"
-        )
-        vincoli_uso_acqua.append(vincolo_supera_risorse)
-
-        # Vincolo per l'uso minimo di acqua
-        vincolo_sotto_minimo = VincoloSoftGestioneAcqua(
-            [uso_var],
-            penalty_if_below_min_usage,
-            f"Uso acqua sotto il minimo per {nazione}"
-        )
-        vincoli_uso_acqua.append(vincolo_sotto_minimo)
-
-    # Creazione del CSP
-    water_crisis_csp = CSP("GestioneCrisiAcquaConPenalità", 
-                           list(usage_vars.values()) + list(resource_vars.values()), 
-                           vincoli_uso_acqua)
-    
-    return water_crisis_csp
-
 
 # Funzione che crea le variabili e i vincoli soft per le nazioni passate come parametro
 def crea_csp_gestione_acqua(nazioni):
@@ -69,46 +22,46 @@ def crea_csp_gestione_acqua(nazioni):
     Crea un CSP per la gestione delle risorse idriche per una lista di nazioni.
     
     Args:
-        nazioni (list): Lista di nomi delle nazioni (ad esempio, ['Italia', 'Spagna', 'Francia']).
+        nazioni (list): Lista di nomi delle nazioni (ad esempio, ['Italy, 'Spain', 'France']).
     
     Returns:
         CSP: Un oggetto CSP configurato con le variabili e i vincoli per le nazioni.
     """
-    # Step 1: Creiamo le variabili per ogni nazione (uso e risorse)
-    usage_vars = {nazione: Variable(f'usage_{nazione}', {i for i in range(1, 11)}) for nazione in nazioni}
-    resource_vars = {nazione: Variable(f'resources_{nazione}', {i for i in range(1, 11)}) for nazione in nazioni}
+    # Step 1: Creazione delle variabili per ogni nazione (uso e risorse)
+    consumo_vars = {nazione: Variable(f'consumo_{nazione}', {i for i in range(1, 11)}) for nazione in nazioni}
+    risorse_vars = {nazione: Variable(f'risorse_{nazione}', {i for i in range(1, 11)}) for nazione in nazioni}
 
-    # Step 2: Definiamo i vincoli soft
-    def penalty_if_exceed_demand(uso_acqua, risorse_disponibili):
+    # Step 2: Definizione dei vincoli soft
+    def penalita_se_supera_domanda(uso_acqua, risorse_disponibili):
         """Vincolo soft: penalità se l'uso supera le risorse disponibili"""
         if uso_acqua > risorse_disponibili:
-            return (uso_acqua - risorse_disponibili) * 2  # Penalità per superamento
+            return (uso_acqua - risorse_disponibili) * 20  # Penalità per superamento
         return 0  # Nessuna penalità
 
-    def penalty_if_below_min_usage(uso_acqua,MIN_USAGE = 5):
+    def penalita_se_sotto_minimo(uso_acqua,MIN_USO = 5):
         """Vincolo soft: penalità se l'uso è inferiore alla soglia minima"""
         # Soglia minima di uso
-        if uso_acqua < MIN_USAGE:
-            return (MIN_USAGE - uso_acqua) * 5  # Penalità per sottouso
+        if uso_acqua < MIN_USO:
+            return (MIN_USO - uso_acqua) * 5  # Penalità per sottouso
         return 0
 
-    # Step 3: Creiamo i vincoli soft per ogni nazione
+    # Step 3: Creazione dei vincoli soft per ogni nazione
     soft_constraints = []
     
     for nazione in nazioni:
-        uso_var = usage_vars[nazione]
-        risorsa_var = resource_vars[nazione]
+        consumo_var = consumo_vars[nazione]
+        risorsa_var = risorse_vars[nazione]
         
         # Vincolo soft per l'uso che supera le risorse
-        c1 = VincoloSoftGestioneAcqua([uso_var, risorsa_var], penalty_if_exceed_demand, f'uso_supera_risorse_{nazione}')
-        soft_constraints.append(c1)
+        vincolo_superamento = VincoloSoftGestioneAcqua([consumo_var, risorsa_var], penalita_se_supera_domanda, f'consumo_supera_risorse_{nazione}')
+        soft_constraints.append(vincolo_superamento)
         
         # Vincolo soft per l'uso che è sotto la soglia minima
-        c2 = VincoloSoftGestioneAcqua([uso_var], penalty_if_below_min_usage, f'uso_sotto_min_{nazione}')
-        soft_constraints.append(c2)
+        vincolo_minimo = VincoloSoftGestioneAcqua([consumo_var], penalita_se_sotto_minimo, f'consumo_sotto_min_{nazione}')
+        soft_constraints.append(vincolo_minimo)
 
     # Step 4: Creiamo l'istanza del CSP con tutte le variabili e i vincoli definiti
-    csp = CSP("GestioneCrisiAcqua", list(usage_vars.values()) + list(resource_vars.values()), soft_constraints)
+    csp = CSP("GestioneCrisiAcqua", list(consumo_vars.values()) + list(risorse_vars.values()), soft_constraints)
 
     return csp
 
@@ -148,18 +101,18 @@ class DF_branch_and_bound_opt(Displayable):
                     self.cbsearch({var: val} | asst, newcost, rem_cons)
                     
 
-def plot_water_usage(solution):
+def plot_consumo_acqua(soluzione):
     """
     Crea un grafico a barre per visualizzare l'uso dell'acqua per ogni nazione.
     
     Args:
         solution (dict): La soluzione CSP con allocazione dell'acqua.
     """
-    nations = [var.name for var in solution.keys()]
-    usage = [value for value in solution.values()]
+    nazioni = [var.name for var in solution.keys()]
+    consumo = [value for value in solution.values()]
     
     plt.figure(figsize=(20, 10))
-    plt.bar(nations, usage, color='skyblue')
+    plt.bar(nazioni, consumo, color='skyblue')
     plt.xlabel("Nazioni")
     plt.ylabel("Uso dell'acqua (unità)")
     plt.title("Distribuzione dell'acqua per nazione")
